@@ -4,6 +4,7 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
+// network
 const char *ssid = "testserver";
 const char* password = "password";
 
@@ -11,11 +12,13 @@ AsyncWebServer server(80);
 AsyncWebSocket ws("/ws"); // http endpoint where connection upgrade request should hit
 AsyncWebSocketClient *Client;
 
+// ws functions
+void hanndleBinaryData(uint8_t *data, int size);
+void handleTextData(uint8_t *data, int size);
 void handleWebSocketMessage(void *arg, AsyncWebSocketClient *client, uint8_t *data, size_t len);
 void eventHandler(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
 void sendBinaryData(AsyncWebSocketClient *client, uint8_t *data, int length);
 void sendTextData(AsyncWebSocketClient *client, const char *message, int length);
-
 
 void setup(){
   Serial.begin(115200);
@@ -35,41 +38,34 @@ void setup(){
 
 void loop(){
   ws.cleanupClients();
-  uint8_t data[] = {0x8a, 0x7e};
-  Serial.println(sizeof(data));
-  int length = sizeof(data);
-  const char *message = "this is a message from ws server";
-  int message_length = strlen(message);
-  if(Client){
-    sendBinaryData(Client, data, length);
-    sendTextData(Client, message, message_length);
-  }
-  delay(7000);
 }
 
 void handleWebSocketMessage(void *arg, AsyncWebSocketClient *client, uint8_t *data, size_t len) {
   AwsFrameInfo *info = (AwsFrameInfo*)arg;
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
-    Serial.println("Text data received");
-    data[len] = 0;
-    char *data_string = (char*)data;
-    Serial.printf("received text data = %s\n", data_string);
-    // assign text data to variables
+    handleTextData(data, len);
   }
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_BINARY) {
-    Serial.println("binary data received");
-    Serial.print("Binaray data length- ");
-    Serial.println(len);
-    Serial.print("Binary data- ");
-    for(int i=0; i<len; i++){
-      Serial.print(data[i], HEX);
-    }
-    // assign binary data to variables
+    hanndleBinaryData(data, len);
   }
 }
 
 void sendBinaryData(AsyncWebSocketClient *client, uint8_t *data, int length){  // use sizeof to find length
   client->binary(data, length);
+}
+
+void hanndleBinaryData(uint8_t *data, int size){
+  Serial.print("received binary sequence- ");
+  for(int i =0; i < size; i++){
+    Serial.print(data[i], HEX);
+  }
+  Serial.println();
+}
+
+void handleTextData(uint8_t *data, int size){
+  char *message = (char*)data;
+  Serial.print("received message- ");
+  Serial.println(message);
 }
 
 void sendTextData(AsyncWebSocketClient *client, const char *message, int length){ // use strlen to find length
