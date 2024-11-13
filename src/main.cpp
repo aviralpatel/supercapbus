@@ -16,7 +16,6 @@ void sendBinaryData(AsyncWebSocketClient *client, uint8_t *data, int length);
 void sendTextData(AsyncWebSocketClient *client, const char *message, int length);
 
 
-
 void setup(){
   Serial.begin(115200);
   WiFi.begin(ssid, password);
@@ -54,9 +53,17 @@ void handleWebSocketMessage(void *arg, AsyncWebSocketClient *client, uint8_t *da
     data[len] = 0;
     char *data_string = (char*)data;
     Serial.printf("received text data = %s\n", data_string);
+    // assign text data to variables
   }
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_BINARY) {
     Serial.println("binary data received");
+    Serial.print("Binaray data length- ");
+    Serial.println(len);
+    Serial.print("Binary data- ");
+    for(int i=0; i<len; i++){
+      Serial.print(data[i], HEX);
+    }
+    // assign binary data to variables
   }
 }
 
