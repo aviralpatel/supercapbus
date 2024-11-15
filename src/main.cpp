@@ -23,7 +23,11 @@ AsyncWebSocket ws("/ws"); // http endpoint where connection upgrade request shou
 AsyncWebSocketClient *Client;
 
 Servo steerServo;
-
+int servo_angle = 90;
+const int PWM_CHANNEL = 11;
+const int PWM_FREQ = 5000;
+const int PWM_RESOLUTION = 8;
+int duty_cycle = 100;
 
 // ws functions
 void hanndleBinaryData(uint8_t *data, int size);
@@ -55,6 +59,8 @@ void setup(){
 	ESP32PWM::allocateTimer(3);
 	steerServo.setPeriodHertz(50);
   steerServo.attach(SERVO_PIN, 500, 2400);  
+  ledcSetup(PWM_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
+  ledcAttachPin(POWER_PIN, PWM_CHANNEL);
   pinMode(POWER_PIN, OUTPUT);
   digitalWrite(POWER_PIN, HIGH);
 }
@@ -102,6 +108,8 @@ void hanndleBinaryData(uint8_t *data, int size){
     Serial.print(data[i], HEX);
   }
   Serial.println();
+  duty_cycle = data[0];
+  servo_angle = data[1];
 }
 
 void handleTextData(uint8_t *data, int size){
@@ -133,4 +141,8 @@ void eventHandler(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEvent
     case WS_EVT_ERROR:
       break;
   }
+}
+
+void setMotorSpeed(int pwm_val){
+
 }
