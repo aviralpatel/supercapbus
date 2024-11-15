@@ -1,0 +1,3 @@
+core 0 is panicking when esp is used in a dual core config
+    stack sizes checked
+    

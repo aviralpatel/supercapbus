@@ -1,0 +1,17 @@
+{
+  "name": "superbusclient",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "nodemon playground.js",
+    "dev": "node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "input-event": "^1.2.6",
+    "nodemon": "^3.1.7",
+    "ws": "^8.18.0"
+  }
+}
