@@ -37,6 +37,8 @@ void eventHandler(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEvent
 void sendBinaryData(AsyncWebSocketClient *client, uint8_t *data, int length);
 void sendTextData(AsyncWebSocketClient *client, const char *message, int length);
 
+void setMotorSpeed(int pwm_val);
+void setServoAngle(int angle);
 
 void setup(){
   Serial.begin(115200);
@@ -61,30 +63,11 @@ void setup(){
   steerServo.attach(SERVO_PIN, 500, 2400);  
   ledcSetup(PWM_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
   ledcAttachPin(POWER_PIN, PWM_CHANNEL);
-  pinMode(POWER_PIN, OUTPUT);
-  digitalWrite(POWER_PIN, HIGH);
+  ledcWrite(PWM_CHANNEL, 0);
 }
 
 void loop(){
   ws.cleanupClients();
-  uint8_t binary_data[] = {0x7a, 0x99, 0x1c, 0xf3, 0x8b, 0x01, 0xbf};
-  const char *text_data = "this is a ping from esp server";
-  if(Client){
-    ws.binaryAll(binary_data, sizeof(binary_data));
-    ws.textAll(text_data);
-  }
-  for (int pos = 50; pos <= 140; pos += 1) { // goes from 0 degrees to 180 degrees
-		// in steps of 1 degree
-		steerServo.write(pos);    // tell servo to go to position in variable 'pos'
-    Serial.println(pos);
-		delay(15);             // waits 15ms for the servo to reach the position
-	}
-	for (int pos = 140; pos >= 50; pos -= 1) { // goes from 180 degrees to 0 degrees
-		steerServo.write(pos);
-    Serial.println(pos);    // tell servo to go to position in variable 'pos'
-		delay(15);             // waits 15ms for the servo to reach the position
-	}
-  // steerServo.write(90);
   delay(100);
 }
 
@@ -110,6 +93,8 @@ void hanndleBinaryData(uint8_t *data, int size){
   Serial.println();
   duty_cycle = data[0];
   servo_angle = data[1];
+  setMotorSpeed(duty_cycle);
+  setServoAngle(servo_angle);
 }
 
 void handleTextData(uint8_t *data, int size){
@@ -144,5 +129,9 @@ void eventHandler(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEvent
 }
 
 void setMotorSpeed(int pwm_val){
+  ledcWrite(PWM_CHANNEL, pwm_val);
+}
 
+void setServoAngle(int angle){
+  steerServo.write(angle);
 }

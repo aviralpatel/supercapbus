@@ -18,7 +18,8 @@ ws.on("open", () => {
 
 ws.on("message", (stream, isBinary) => {
     if(isBinary){
-        
+        console.log("binary data received");
+        const length = stream.length
     }
     else{
         
@@ -45,11 +46,29 @@ keyboardInput.on("data", event => {
             angle_c = right_angle;
             sendControls(duty_cycle_c, angle_c);
         }
+        else if(event.code==103){
+            if(duty_cycle < 255){
+                duty_cycle += 1;
+            }
+        }
+        else if(event.code==108){
+            if(duty_cycle > 0){
+                duty_cycle -= 1;
+            }
+        }
     }
     else if(event.value == 0){
         console.log(`Button with code ${event.code} released`);
         if(event.code==17){
             duty_cycle_c = 0;
+            sendControls(duty_cycle_c, angle_c);
+        }
+        else if(event.code==30){
+            angle_c = 90;
+            sendControls(duty_cycle_c, angle_c);
+        }
+        else if(event.code==32){
+            angle_c = 90;
             sendControls(duty_cycle_c, angle_c);
         }
     }
