@@ -24,10 +24,13 @@ AsyncWebSocketClient *Client;
 
 Servo steerServo;
 int servo_angle = 90;
-const int PWM_CHANNEL = 11;
-const int PWM_FREQ = 5000;
-const int PWM_RESOLUTION = 8;
-int duty_cycle = 100;
+bool power_state = false;
+int servo_angle_c = 90;
+
+float cap_voltage = 0;
+float current_draw = 0;
+
+unsigned long last_time = 0;
 
 // ws functions
 void hanndleBinaryData(uint8_t *data, int size);
@@ -60,15 +63,30 @@ void setup(){
 	ESP32PWM::allocateTimer(2);
 	ESP32PWM::allocateTimer(3);
 	steerServo.setPeriodHertz(50);
-  steerServo.attach(SERVO_PIN, 500, 2400);  
-  ledcSetup(PWM_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
-  ledcAttachPin(POWER_PIN, PWM_CHANNEL);
-  ledcWrite(PWM_CHANNEL, 0);
+  steerServo.attach(SERVO_PIN, 500, 2400); 
+  steerServo.write(servo_angle);
+  analogSetWidth(12);
+  pinMode(POWER_PIN, OUTPUT);
+  pinMode(VOLTAGE_PIN, INPUT);
+  pinMode(CURRENT_PIN, INPUT);
 }
 
 void loop(){
   ws.cleanupClients();
-  delay(100);
+  digitalWrite(POWER_PIN, power_state);
+  steerServo.write(servo_angle_c);
+  if(millis() - last_time > 1000){
+    cap_voltage = float(analogRead(VOLTAGE_PIN))*(3.3/4095.0)*7.8;
+    current_draw = (float(analogRead(CURRENT_PIN))*float(3.3/4095.0) - 2.5)*0.2 ;
+    Serial.printf("Volatge- %f, Current- %f\n", cap_voltage, current_draw);
+    uint8_t readings[] = {uint8_t(cap_voltage), uint8_t(current_draw)};
+    int len = sizeof(readings);
+    if(Client){
+      sendBinaryData(Client, readings, len);
+    }
+    last_time = millis();
+  }
+  delay(10);
 }
 
 void handleWebSocketMessage(void *arg, AsyncWebSocketClient *client, uint8_t *data, size_t len) {
@@ -91,10 +109,25 @@ void hanndleBinaryData(uint8_t *data, int size){
     Serial.print(data[i], HEX);
   }
   Serial.println();
-  duty_cycle = data[0];
-  servo_angle = data[1];
-  setMotorSpeed(duty_cycle);
-  setServoAngle(servo_angle);
+  if(data[0] == 0xFF){
+    Serial.println("motor turned on");
+    power_state = true;
+  }
+  else if(data[0] == 0x01){
+    Serial.println("motor turned off");
+    power_state = false;
+  }
+  if(data[1] == 0xA2){
+    Serial.println("Steer left");
+    servo_angle_c = 20;
+  }
+  else if(data[1] == 0xA0){
+    servo_angle_c = 90;
+  }
+  else if(data[1] == 0xA1){
+    Serial.println("Steer right");
+    servo_angle_c = 150;
+  }
 }
 
 void handleTextData(uint8_t *data, int size){
@@ -126,12 +159,4 @@ void eventHandler(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEvent
     case WS_EVT_ERROR:
       break;
   }
-}
-
-void setMotorSpeed(int pwm_val){
-  ledcWrite(PWM_CHANNEL, pwm_val);
-}
-
-void setServoAngle(int angle){
-  steerServo.write(angle);
 }
